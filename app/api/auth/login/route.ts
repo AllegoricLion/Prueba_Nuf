@@ -16,15 +16,15 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { error: error.message },
+        { error: typeof error === 'object' && error && 'message' in error ? (error as any).message : String(error) },
         { status: 401 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      user: data.user,
-      session: data.session,
+      user: data && data.user,
+      session: data && data.session,
     });
   } catch (error) {
     console.error('Login error:', error);

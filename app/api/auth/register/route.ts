@@ -16,14 +16,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { error: error.message },
+        { error: typeof error === 'object' && error && 'message' in error ? (error as any).message : String(error) },
         { status: 400 }
       );
     }
 
-    if (data.user) {
+    if (data && data.user) {
       // Create profile for the new user
-      const profile = await createProfile(data.user);
+      // Ensure email and updated_at are strings
+      const userForProfile = { ...data.user, email: data.user.email || '', updated_at: data.user.updated_at || '' };
+      const profile = await createProfile(userForProfile);
       
       if (!profile) {
         return NextResponse.json(

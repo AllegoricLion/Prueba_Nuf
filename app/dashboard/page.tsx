@@ -33,7 +33,14 @@ export default function DashboardPage() {
         return;
       }
 
-      setUser(user);
+      // Map user to local User type to ensure email and created_at are strings
+      const mappedUser = {
+        id: user.id,
+        email: user.email || '',
+        created_at: user.created_at || '',
+        updated_at: user.updated_at || '',
+      };
+      setUser(mappedUser);
 
       // Get user profile
       const profileData = await getProfile(user.id);
