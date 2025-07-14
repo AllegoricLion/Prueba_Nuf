@@ -3,14 +3,17 @@ import { Profile, User } from '@/types';
 
 // Create Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-console.log('supabaseUrl', supabaseUrl);
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabase = createClient('https://eqeuiciirnlujvtqkzmk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxZXVpY2lpcm5sdWp2dHFrem1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzNjYzODQsImV4cCI6MjA2Nzk0MjM4NH0.5wOAxR9-Uqhr3HoLFMpHNuOs01z1nPSWmW7w-mM16D0');
+if (!supabaseUrl) throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
+if (!supabaseAnonKey) throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY');
+if (!supabaseServiceKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Create admin client for server-side operations
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-export const supabaseAdmin = createClient('https://eqeuiciirnlujvtqkzmk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxZXVpY2lpcm5sdWp2dHFrem1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzNjYzODQsImV4cCI6MjA2Nzk0MjM4NH0.5wOAxR9-Uqhr3HoLFMpHNuOs01z1nPSWmW7w-mM16D0');
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 
 // Profile management functions
