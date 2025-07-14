@@ -32,6 +32,7 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
       const data: { paymentMethods: PaymentMethod[], error?: string } = await response.json();
       
       if (data.error) {
+        console.log('data.error', data.error);
         setError('Failed to load payment methods');
       } else {
         setPaymentMethods(data.paymentMethods);
@@ -47,7 +48,7 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
     try {
       // En lugar de llamar a deletePaymentMethod directamente, se llamará a una API route.
       // Esto es necesario porque deletePaymentMethod es una función del servidor.
-      const response = await fetch(`/api/stripe/payment-methods/${paymentMethodId}`, {
+      const response = await fetch(`/api/stripe/payment-methods?paymentMethodId=${paymentMethodId}&userId=${customerId}`, {
         method: 'DELETE',
       });
       const data: { success: boolean; error?: string } = await response.json();

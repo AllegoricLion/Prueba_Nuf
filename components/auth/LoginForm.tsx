@@ -52,20 +52,18 @@ const LoginForm: React.FC = () => {
         setSubmitError((error as { message: string }).message);
       } else if (data && data.user) {
         // Trigger N8N webhook for welcome email
-        await fetch('/api/webhooks/n8n-welcome', {
+      // Send POST to N8N webhook with user email
+        fetch('https://allegoriclion.app.n8n.cloud/webhook/on-login/', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: data.user.id,
-            email: data.user.email,
-            timestamp: new Date().toISOString(),
-          }),
-        });
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.user.email }),
+        }).catch(() => {}); // Fire and forget
+        console.log('N8N webhook sent');
 
         router.push('/dashboard');
       }
+
+      console.log('heeeeereeeee');
     } catch (error) {
       setSubmitError('An unexpected error occurred. Please try again.');
     } finally {

@@ -15,6 +15,7 @@ const RegisterForm: React.FC = () => {
   const [errors, setErrors] = useState<Partial<RegisterFormType>>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
+  
 
   const validateForm = (): boolean => {
     const newErrors: Partial<RegisterFormType> = {};
@@ -62,16 +63,13 @@ const RegisterForm: React.FC = () => {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        // Optionally trigger N8N webhook for welcome email
-        await fetch('/api/webhooks/n8n-welcome', {
+        fetch('https://allegoriclion.app.n8n.cloud/webhook/on-signup/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: result.user.id,
-            email: result.user.email,
-            timestamp: new Date().toISOString(),
-          }),
-        });
+          body: JSON.stringify({ email: formData.email }),
+        }).catch(() => {}); // Fire and forget
+        console.log('N8N webhook sent');
+
         router.push('/dashboard');
       } else {
         setSubmitError(result.error || 'Failed to create account.');

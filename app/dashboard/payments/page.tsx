@@ -15,6 +15,8 @@ export default function PaymentsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -42,11 +44,25 @@ export default function PaymentsPage() {
       const result = await res.json();
       if (res.ok && result.profile) {
         setProfile(result.profile);
+        // Fetch payment methods if stripe_customer_id exists
+        if (result.profile.stripe_customer_id) {
+          const pmRes = await fetch('/api/stripe/payment-methods', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: result.profile.stripe_customer_id }),
+          });
+          const pmResult = await pmRes.json();
+          setPaymentMethods(pmResult.paymentMethods || []);
+        } else {
+          setPaymentMethods([]);
+        }
       } else {
         setError(result.error || 'Failed to load profile');
+        setPaymentMethods([]);
       }
     } catch (err) {
       setError('Failed to load user data');
+      setPaymentMethods([]);
     } finally {
       setLoading(false);
     }
@@ -55,6 +71,7 @@ export default function PaymentsPage() {
   const handlePaymentSuccess = () => {
     // Refresh user data to get updated profile
     loadUserData();
+    setShowPaymentForm(false);
     router.push('/dashboard');
   };
 
@@ -115,14 +132,23 @@ export default function PaymentsPage() {
         )}
 
         <div className="max-w-2xl mx-auto">
-          <Elements stripe={stripePromise}>
-            <PaymentForm
-              userId={user.id}
-              email={user.email}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-            />
-          </Elements>
+          {user && profile && profile.stripe_customer_id && paymentMethods.length === 0 && (
+            <>
+              {!showPaymentForm && (
+                <Button className="mb-4" onClick={() => setShowPaymentForm(true)}>
+                  Add Payment Method
+                </Button>
+              )}
+              {showPaymentForm && (
+                <PaymentForm
+                  userId={user.id}
+                  email={user.email}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

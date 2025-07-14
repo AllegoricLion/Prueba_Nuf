@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Elements } from '@stripe/react-stripe-js';
+import { getStripe } from '@/lib/stripe/client';
 import { getCurrentUser, signOut } from '@/lib/supabase/client';
 import { Profile, User } from '@/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import PaymentMethods from '@/components/payments/PaymentMethods';
 import { formatDate } from '@/lib/utils';
+import PaymentForm from '@/components/payments/PaymentForm';
+
+const stripePromise = getStripe();
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,6 +21,8 @@ export default function DashboardPage() {
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -43,11 +50,25 @@ export default function DashboardPage() {
       const result = await res.json();
       if (res.ok && result.profile) {
         setProfile(result.profile);
+        // Fetch payment methods if stripe_customer_id exists
+        if (result.profile.stripe_customer_id) {
+          const pmRes = await fetch('/api/stripe/payment-methods', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: result.profile.stripe_customer_id }),
+          });
+          const pmResult = await pmRes.json();
+          setPaymentMethods(pmResult.paymentMethods || []);
+        } else {
+          setPaymentMethods([]);
+        }
       } else {
         setError(result.error || 'Failed to load profile');
+        setPaymentMethods([]);
       }
     } catch (err) {
       setError('Failed to load user data');
+      setPaymentMethods([]);
     } finally {
       setLoading(false);
     }
@@ -60,6 +81,18 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handlePaymentError = (error: string) => {
+    setError(error);
+    setShowPaymentForm(false);
+  };
+
+  const handlePaymentSuccess = () => {
+    // Refresh user data to get updated profile
+    loadUserData();
+    setShowPaymentForm(false);
+    router.push('/dashboard');
   };
 
   if (loading) {
@@ -207,19 +240,27 @@ export default function DashboardPage() {
         )}
 
         {/* Add Payment Method */}
-        {!profile?.stripe_customer_id && (
-          <div className="mt-8">
-            <Card title="Add Payment Method">
-              <p className="text-gray-600 mb-4">
-                You haven't added any payment methods yet. 
-                Add a payment method to get started.
-              </p>
-              <Button onClick={() => router.push('/dashboard/payments')}>
-                Add Payment Method
-              </Button>
-            </Card>
-          </div>
-        )}
+        <div className="max-w-2xl mx-auto">
+          {user && paymentMethods.length === 0 && (
+            <>
+              {!showPaymentForm && (
+                <Button className="mb-4" onClick={() => setShowPaymentForm(true)}>
+                  Add Payment Method
+                </Button>
+              )}
+              {showPaymentForm && (
+                <Elements stripe={stripePromise}>
+                  <PaymentForm
+                    userId={user.id}
+                    email={user.email}
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                  />
+                </Elements>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
