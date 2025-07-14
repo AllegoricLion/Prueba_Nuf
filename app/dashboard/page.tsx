@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, getProfile, signOut } from '@/lib/supabase';
+import { getCurrentUser, signOut } from '@/lib/supabase/client';
 import { Profile, User } from '@/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -24,15 +24,12 @@ export default function DashboardPage() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      
       // Get current user
       const { user, error: userError } = await getCurrentUser();
-      
       if (userError || !user) {
         router.push('/login');
         return;
       }
-
       // Map user to local User type to ensure email and created_at are strings
       const mappedUser = {
         id: user.id,
@@ -41,17 +38,13 @@ export default function DashboardPage() {
         updated_at: user.updated_at || '',
       };
       setUser(mappedUser);
-
-      // Get user profile
-      const profileData = await getProfile(user.id);
-      setProfile(profileData);
-
-      // Get Stripe customer if exists
-      if (profileData?.stripe_customer_id) {
-        // This part of the code was removed as per the edit hint.
-        // If you need to fetch the customer from the frontend, you'll need to call an API route.
-        // For now, we'll set customer to null or handle it appropriately.
-        // setCustomer(customerData); 
+      // Fetch profile from API route
+      const res = await fetch(`/api/profile/${user.id}`);
+      const result = await res.json();
+      if (res.ok && result.profile) {
+        setProfile(result.profile);
+      } else {
+        setError(result.error || 'Failed to load profile');
       }
     } catch (err) {
       setError('Failed to load user data');

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { getStripe } from '@/lib/stripe/client';
-import { updateStripeCustomerId } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { PaymentForm as PaymentFormType } from '@/types';
@@ -36,6 +35,17 @@ async function createPaymentMethod(customerId: string, paymentMethodId: string) 
   });
   const data = await res.json();
   return { error: data.error };
+}
+
+// New: API call to update Stripe customer ID
+async function updateStripeCustomerId(userId: string, stripeCustomerId: string) {
+  const res = await fetch('/api/profile/update-stripe-customer-id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, stripeCustomerId }),
+  });
+  const data = await res.json();
+  return data.success;
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
@@ -101,7 +111,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error('Failed to attach payment method to customer');
       }
 
-      // Update user profile with Stripe customer ID
+      // Update user profile with Stripe customer ID via API route
       const success = await updateStripeCustomerId(userId, customer.id);
       
       if (!success) {

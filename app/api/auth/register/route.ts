@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { signUp, createProfile } from '@/lib/supabase';
+import { signUp } from '@/lib/supabase/client';
+import { createProfile } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {

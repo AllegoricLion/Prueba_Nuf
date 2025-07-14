@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/supabase';
+import { signIn } from '@/lib/supabase/client';
 import { isValidEmail } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';

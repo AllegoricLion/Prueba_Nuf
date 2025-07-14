@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Elements } from '@stripe/react-stripe-js';
 import { getStripe } from '@/lib/stripe/client';
-import { getCurrentUser, getProfile } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/supabase/client';
 import { User, Profile } from '@/types';
 import PaymentForm from '@/components/payments/PaymentForm';
 import Button from '@/components/ui/Button';
@@ -23,18 +23,12 @@ export default function PaymentsPage() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      
       // Get current user
       const { user, error: userError } = await getCurrentUser();
-      console.log('user', user);
-      // console.log('userError', userError);
-      
       if (userError || !user) {
-        console.log('userError', userError);
         router.push('/login');
         return;
       }
-
       // Map user to local User type to ensure email and created_at are strings
       const mappedUser = {
         id: user.id,
@@ -43,13 +37,15 @@ export default function PaymentsPage() {
         updated_at: user.updated_at || '',
       };
       setUser(mappedUser);
-
-      // Get user profile
-      const profileData = await getProfile(user.id);
-      console.log('profileData', profileData);
-      setProfile(profileData);
+      // Fetch profile from API route
+      const res = await fetch(`/api/profile/${user.id}`);
+      const result = await res.json();
+      if (res.ok && result.profile) {
+        setProfile(result.profile);
+      } else {
+        setError(result.error || 'Failed to load profile');
+      }
     } catch (err) {
-      console.log('err', err);
       setError('Failed to load user data');
     } finally {
       setLoading(false);

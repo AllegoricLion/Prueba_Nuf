@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signUp, createProfile } from '@/lib/supabase';
 import { isValidEmail, isValidPassword } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -53,38 +52,29 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await signUp(formData.email, formData.password);
-
-      if (error && typeof error === 'object' && 'message' in error) {
-        setSubmitError((error as { message: string }).message);
-      } else if (data && data.user) {
-        // Create profile for the new user
-        const userWithEmail = {
-          ...data.user,
-          email: data.user.email ?? '',
-          created_at: data.user.created_at ?? '',
-          updated_at: data.user.updated_at ?? '',
-        };
-        const profile = await createProfile(userWithEmail);
-        
-        if (profile) {
-          // Trigger N8N webhook for welcome email
-          await fetch('/api/webhooks/n8n-welcome', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              user_id: data.user.id,
-              email: data.user.email,
-              timestamp: new Date().toISOString(),
-            }),
-          });
-
-          router.push('/dashboard');
-        } else {
-          setSubmitError('Failed to create user profile. Please try again.');
-        }
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        // Optionally trigger N8N webhook for welcome email
+        await fetch('/api/webhooks/n8n-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: result.user.id,
+            email: result.user.email,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        router.push('/dashboard');
+      } else {
+        setSubmitError(result.error || 'Failed to create account.');
       }
     } catch (error) {
       setSubmitError('An unexpected error occurred. Please try again.');
