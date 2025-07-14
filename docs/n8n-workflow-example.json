@@ -1,0 +1,159 @@
+{
+  "name": "Welcome Email Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "welcome-email",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "welcome-email-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validate-user-id",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            },
+            {
+              "id": "validate-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validation-node",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@your-saas.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Welcome to Mini SaaS Platform! 🎉",
+        "text": "Hi there!\n\nWelcome to Mini SaaS Platform! We're excited to have you on board.\n\nYour account has been successfully created with the following details:\n- User ID: {{ $json.user_id }}\n- Email: {{ $json.email }}\n- Signup Date: {{ $json.timestamp }}\n\nIf you have any questions, feel free to reach out to our support team.\n\nBest regards,\nThe Mini SaaS Team",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Welcome to Mini SaaS Platform</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n        .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }\n        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🎉 Welcome to Mini SaaS Platform!</h1>\n        </div>\n        <div class=\"content\">\n            <h2>Hi there!</h2>\n            <p>Welcome to Mini SaaS Platform! We're excited to have you on board.</p>\n            \n            <h3>Your Account Details:</h3>\n            <ul>\n                <li><strong>User ID:</strong> {{ $json.user_id }}</li>\n                <li><strong>Email:</strong> {{ $json.email }}</li>\n                <li><strong>Signup Date:</strong> {{ $json.timestamp }}</li>\n            </ul>\n            \n            <p>Your account has been successfully created and you can now:</p>\n            <ul>\n                <li>Access your dashboard</li>\n                <li>Add payment methods</li>\n                <li>Manage your profile</li>\n                <li>Explore our features</li>\n            </ul>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"https://your-saas-domain.com/dashboard\" class=\"button\">Go to Dashboard</a>\n            </div>\n            \n            <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>\n            \n            <p>Best regards,<br>The Mini SaaS Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This email was sent to {{ $json.email }}. If you didn't sign up for this account, please ignore this email.</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-node",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Welcome email sent successfully\",\n  \"user_id\": \"{{ $json.user_id }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid payload - missing required fields\",\n  \"received_data\": \"{{ $json }}\"\n}",
+        "options": {}
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Failed to send welcome email\",\n  \"user_id\": \"{{ $json.user_id }}\",\n  \"email\": \"{{ $json.email }}\"\n}",
+        "options": {}
+      },
+      "id": "email-error-response",
+      "name": "Email Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 100]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+} 
