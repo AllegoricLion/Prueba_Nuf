@@ -10,21 +10,22 @@ import { stripe } from '@/lib/stripe/server';
 interface PaymentFormProps {
   userId: string;
   email: string;
+  existingCustomerId?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
 // Utilidad para crear un cliente de Stripe vía API route
-async function createCustomer(email: string) {
-  const res = await fetch('/api/stripe/create-customer', {
+async function findOrCreateCustomer(email: string) {
+  const res = await fetch('/api/stripe/find-or-create-customer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
   const data = await res.json();
 
-  console.log('data', data);
-  return { customer: data.customer, error: data.error };
+  console.log('findOrCreateCustomer data:', data);
+  return { customer: data.customer, error: data.error, created: data.created };
 }
 
 async function createPaymentMethod(customerId: string, paymentMethodId: string) {
@@ -51,6 +52,7 @@ async function updateStripeCustomerId(userId: string, stripeCustomerId: string) 
 const PaymentForm: React.FC<PaymentFormProps> = ({
   userId,
   email,
+  existingCustomerId,
   onSuccess,
   onError,
 }) => {
@@ -77,11 +79,23 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setLoading(true);
 
     try {
-      // Create Stripe customer
-      const { customer, error: customerError } = await createCustomer(email);
+      let customer;
+      
+      // Check if user already has a stripe customer ID
+      if (existingCustomerId) {
+        // Use existing customer
+        customer = { id: existingCustomerId };
+        console.log('Using existing customer:', existingCustomerId);
+      } else {
+        // Find or create Stripe customer
+        const { customer: foundCustomer, error: customerError } = await findOrCreateCustomer(email);
 
-      if (customerError || !customer) {
-        throw new Error(customerError?.message || 'Failed to create customer');
+        if (customerError || !foundCustomer) {
+          throw new Error(customerError?.message || 'Failed to create customer');
+        }
+        
+        customer = foundCustomer;
+        console.log('Using customer:', customer.id);
       }
 
       // Create payment method
@@ -111,11 +125,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error('Failed to attach payment method to customer');
       }
 
-      // Update user profile with Stripe customer ID via API route
-      const success = await updateStripeCustomerId(userId, customer.id);
-      
-      if (!success) {
-        throw new Error('Failed to update user profile');
+      // Update user profile with Stripe customer ID via API route (only if not already set)
+      if (!existingCustomerId) {
+        const success = await updateStripeCustomerId(userId, customer.id);
+        
+        if (!success) {
+          throw new Error('Failed to update user profile');
+        }
       }
 
       // Clear the form

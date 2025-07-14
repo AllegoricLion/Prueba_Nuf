@@ -5,6 +5,24 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Customer management functions
+export const findCustomerByEmail = async (email: string) => {
+  try {
+    const customers = await stripe.customers.list({
+      email,
+      limit: 1,
+    });
+    
+    if (customers.data.length > 0) {
+      return { customer: customers.data[0], error: null };
+    }
+    
+    return { customer: null, error: null };
+  } catch (error) {
+    console.error('Error finding Stripe customer by email:', error);
+    return { customer: null, error };
+  }
+};
+
 export const createCustomer = async (email: string, name?: string) => {
   try {
     const customer = await stripe.customers.create({
@@ -167,4 +185,4 @@ export const TEST_CARDS = {
   MASTERCARD: '5555555555554444',
   AMEX: '378282246310005',
   DISCOVER: '6011111111111117',
-} as const; 
+} as const;

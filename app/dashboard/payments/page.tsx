@@ -143,6 +143,7 @@ export default function PaymentsPage() {
                 <PaymentForm
                   userId={user.id}
                   email={user.email}
+                  existingCustomerId={profile?.stripe_customer_id}
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
                 />
